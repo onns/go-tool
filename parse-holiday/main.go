@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"regexp"
 	"strconv"
@@ -38,10 +39,30 @@ func main() {
 	}
 	// log.Printf("%v", cfg)
 	res := parseHoliday(cfg.S)
-	log.Println(res)
-	genIcs(res)
+	// log.Println(res)
+	type days struct {
+		Type int64  `json:"type"`
+		Name string `json:"name"`
+		Date string `json:"date"`
+	}
+	resList := make([]*days, 0)
+	for _, d := range res.Holiday {
+		resList = append(resList, &days{
+			Type: 4,
+			Name: d.Name,
+			Date: d.Time.Format("2006-01-02"),
+		})
+	}
+	for _, d := range res.MakeupDay {
+		resList = append(resList, &days{
+			Type: 4,
+			Name: d.Name,
+			Date: d.Time.Format("2006-01-02"),
+		})
+	}
+	bs, _ := json.Marshal(resList)
+	ioutil.WriteFile(fmt.Sprintf("china-public-holiday.json"), bs, 0644)
 }
-
 
 type Year struct {
 	Workday   []*Day // 工作日
@@ -53,6 +74,7 @@ type Day struct {
 	Time time.Time
 	Name string
 	Desc string
+	Type int
 }
 
 func parseHoliday(s string) (res *Year) {
@@ -75,23 +97,23 @@ func parseHoliday(s string) (res *Year) {
 		}
 		name := findName(line)
 		// log.Println(name)
-		k, e, o, c := findTime(line, year)
+		startTime, endTime, isDaysOff, count := findTime(line, year)
 		i := 1
-		for t := k; !t.After(e); t = t.Add(time.Hour * 24) {
+		for t := startTime; !t.After(endTime); t = t.Add(time.Hour * 24) {
 			res.Holiday = append(res.Holiday, &Day{
 				Time: t,
-				Name: formatH(name, i, c),
-				Desc: line[2:],
+				Name: formatHoliday(name, i, count),
+				Desc: line[6:], // 去掉前面的序号
 			})
 			i += 1
 		}
-		if o {
+		if isDaysOff {
 			t, c := findOvertime(line, year)
 			i = 1
 			for _, day := range t {
 				res.MakeupDay = append(res.MakeupDay, &Day{
 					Time: day,
-					Name: formatO(name, i, c),
+					Name: formatMakeupDay(name, i, c),
 					Desc: line[2:],
 				})
 				i += 1
@@ -163,7 +185,7 @@ func findOvertime(s string, year int) (res []time.Time, count int) {
 		return
 	}
 	t := re.FindStringSubmatch(s)
-	log.Println(t, len(t))
+	// log.Println(t, len(t))
 	if t[2] != "" {
 		count += 1
 		m, _ := strconv.Atoi(t[2])
@@ -181,18 +203,12 @@ func findOvertime(s string, year int) (res []time.Time, count int) {
 	return
 }
 
-func formatH(name string, i, t int) (res string) {
+func formatHoliday(name string, i, t int) (res string) {
 	res = fmt.Sprintf("%s 假期 第%d天/共%d天", name, i, t)
 	return
 }
 
-func formatO(name string, i, t int) (res string) {
+func formatMakeupDay(name string, i, t int) (res string) {
 	res = fmt.Sprintf("%s 补班 第%d天/共%d天", name, i, t)
 	return
-}
-
-func genIcs(res *Year) {
-	for _,day := range res.Holiday {
-		
-	}
 }

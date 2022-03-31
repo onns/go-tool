@@ -30,7 +30,7 @@ func LoadConfig(dir string) (res []byte, err error) {
 	configDir = dir
 	if !fileExists(configDir) {
 		workDir, err = filepath.Abs(filepath.Dir(os.Args[0]))
-		log.Println(workDir)
+		// log.Println(workDir)
 		if err != nil {
 			log.Printf("filepath.Abs err(%+v)", err)
 			return
