@@ -34,7 +34,7 @@ func main() {
 	if err != nil {
 		log.Printf("%v", err)
 	}
-	if err = json.Unmarshal(b, cfg); err != nil {
+	if err = json.Unmarshal(b, &cfg); err != nil {
 		log.Printf("%v", err)
 	}
 	// log.Printf("%v", cfg)
@@ -60,7 +60,7 @@ func main() {
 			Date: d.Time.Format("2006-01-02"),
 		})
 	}
-	bs, _ := json.Marshal(resList)
+	bs, _ := json.MarshalIndent(resList,"","  ")
 	ioutil.WriteFile(fmt.Sprintf("china-public-holiday.json"), bs, 0644)
 }
 
